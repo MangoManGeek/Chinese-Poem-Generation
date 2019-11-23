@@ -91,7 +91,7 @@ def main():
 	dict2hdf5(target_dict=d, f_name='test')
 
 	rv=hdf52dict('test')
-	print rv
+	print (rv)
 
 
 if __name__ == '__main__':
