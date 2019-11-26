@@ -46,4 +46,6 @@ class Char2Vec(Singleton):
 # For testing purpose.
 if __name__ == '__main__':
     char2vec = Char2Vec()
+    test = char2vec.get_vect('$')
+    print(len(test))
 

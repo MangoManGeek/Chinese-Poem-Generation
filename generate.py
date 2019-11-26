@@ -299,7 +299,7 @@ class Generator(Singleton):
         print(" loss =  %f, learning_rate = %f" % (loss, learning_rate))
 
     def _fill_np_matrix(self, texts):
-        max_time = max(map(len, texts))
+        max_time = max(map(len, texts)) #the len of keyword
         matrix = np.zeros([_BATCH_SIZE, max_time, CHAR_VEC_DIM], 
                 dtype = np.float32)
         for i in range(_BATCH_SIZE):

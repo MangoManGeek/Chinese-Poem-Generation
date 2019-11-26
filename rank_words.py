@@ -61,7 +61,9 @@ class RankedWords(Singleton):
                 eps = max(eps, abs(scores[word][0] - scores[word][1]))
                 scores[word][0] = scores[word][1]
             print(" eps = %f" % eps)
-            if eps <= 1e-6:
+            # if eps <= 1e-6:
+            #     break
+            if itr == 200:
                 break
             itr += 1
 
@@ -132,6 +134,6 @@ class RankedWords(Singleton):
 # For testing purpose.
 if __name__ == '__main__':
     ranked_words = RankedWords()
-    for i in range(100):
+    for i in range(1000):
         print(ranked_words[i])
 
