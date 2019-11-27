@@ -10,7 +10,6 @@ import numpy as np
 import os
 import sys
 import tensorflow as tf
-import tensorflow_addons as tfa
 
 _BATCH_SIZE = 64
 _NUM_UNITS = 512
@@ -26,38 +25,36 @@ class GenerateModel(Singleton):
 
         self.char_dict = CharDict()
         self.char2vec = Char2Vec()
+        self.pron_dict = PronDict()
 
-        # if not os.path.exists(save_dir):
-        #     os.mkdir(save_dir)
-        # self.saver = tf.train.Saver(tf.global_variables())
-        # self.trained = False
+        # where to save checkpoint
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
 
-        self.key_encoder_GRU = tf.keras.layers.Bidirectional(
-            tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
-        self.context_encoder_GRU = tf.keras.layers.Bidirectional(
-            tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
-
-        self.attention = tfa.seq2seq.BahdanauAttention(units=_NUM_UNITS)
-        self.decoder_GRU = tf.keras.layers.GRUCell(units=_NUM_UNITS)
+        # self.key_encoder_GRU = tf.keras.layers.Bidirectional(
+        #     tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
+        # self.context_encoder_GRU = tf.keras.layers.Bidirectional(
+        #     tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
+        # self.attention = tfa.seq2seq.BahdanauAttention(units=_NUM_UNITS)
+        # self.decoder_GRU = tf.keras.layers.GRUCell(units=_NUM_UNITS)
         # self.attention_wrapper = tfa.seq2seq.attention_wrapper(cell=self.decoder_GRU, attention_machanism=self.attention)
         # self.decoder = tfa.seq2seq.dynamic_decode()
 
         # self.dense_layer = tf.keras.layers.Dense(intput = )
-        self.dense = tf.keras.layers.Dense(input_dim=_NUM_UNITS, units=len(self.char_dict))
+        # self.dense = tf.keras.layers.Dense(input_dim=_NUM_UNITS, units=len(self.char_dict))
+        self.encoder = Encoder()
+        self.decoder = Decoder(len(self.char_dict))
 
     def generate(self, keywords):
         assert NUM_OF_SENTENCES == len(keywords)
         context = start_of_sentence()
-        pron_dict = PronDict()
-        encoder = Encoder()
-        decoder = Decoder(len(self.char_dict))
         for keyword in keywords:
             keyword_data, keyword_length = self._fill_np_matrix(
                 [keyword] * _BATCH_SIZE)
             context_data, context_length = self._fill_np_matrix(
                 [context] * _BATCH_SIZE)
 
-            keyword_state, context_output, final_output, final_state = encoder(keyword_data, context_data)
+            keyword_state, context_output, final_output, final_state = self.encoder(keyword_data, context_data)
             char = start_of_sentence()
             for _ in range(7):
                 decoder_input, decoder_input_length = \
@@ -66,8 +63,9 @@ class GenerateModel(Singleton):
                     pass
                 else:
                     keyword_state = final_state
-                probs, final_state = decoder(keyword_state, context_output, decoder_input, decoder_input_length, final_output, final_state)
-                prob_list = self._gen_prob_list(probs, context, pron_dict)
+                probs, final_state = self.decoder(keyword_state, context_output, decoder_input, decoder_input_length,
+                                                  final_output, final_state)
+                prob_list = self._gen_prob_list(probs, context)
                 prob_sums = np.cumsum(prob_list)
                 rand_val = prob_sums[-1] * random()
                 for i, prob_sum in enumerate(prob_sums):
@@ -78,7 +76,7 @@ class GenerateModel(Singleton):
             context += end_of_sentence()
         return context[1:].split(end_of_sentence())
 
-    def _gen_prob_list(self, probs, context, pron_dict):
+    def _gen_prob_list(self, probs, context):
         prob_list = probs.numpy().tolist()[0]
         prob_list[0] = 0
         prob_list[-1] = 0
@@ -90,15 +88,12 @@ class GenerateModel(Singleton):
             if ch in used_chars:
                 prob_list[i] *= 0.6
             # Penalize rhyming violations.
-            if (idx == 15 or idx == 31) and \
-                    not pron_dict.co_rhyme(ch, context[7]):
+            if (idx == 15 or idx == 31) and not self.pron_dict.co_rhyme(ch, context[7]):
                 prob_list[i] *= 0.2
             # Penalize tonal violations.
-            if idx > 2 and 2 == idx % 8 and \
-                    not pron_dict.counter_tone(context[2], ch):
+            if (idx > 2 and 2 == idx % 8) and not self.pron_dict.counter_tone(context[2], ch):
                 prob_list[i] *= 0.4
-            if (4 == idx % 8 or 6 == idx % 8) and \
-                    not pron_dict.counter_tone(context[idx - 2], ch):
+            if (4 == idx % 8 or 6 == idx % 8) and not self.pron_dict.counter_tone(context[idx - 2], ch):
                 prob_list[i] *= 0.4
         return prob_list
 
@@ -141,6 +136,48 @@ class GenerateModel(Singleton):
     #             assert_same_rank(reshaped_outputs.shape)
     #     return reshaped_outputs
 
+    def train(self, checkpoint, n_epochs):
+        print("Training RNN-based generator ...")
+        try:
+            for epoch in range(n_epochs):
+                batch_no = 0
+                for keywords, contexts, sentences in batch_train_data(_BATCH_SIZE):
+                    sys.stdout.write("[Seq2Seq Training] epoch = %d, line %d to %d ..." %
+                                     (epoch, batch_no * _BATCH_SIZE,
+                                      (batch_no + 1) * _BATCH_SIZE))
+                    sys.stdout.flush()
+                    self._train_a_batch(keywords, contexts, sentences)
+                    batch_no += 1
+                    if 0 == batch_no % 32:
+                        checkpoint.save(file_prefix=save_dir)
+                checkpoint.save(file_prefix=save_dir)
+            print("Training is done.")
+        except KeyboardInterrupt:
+            print("Training is interrupted.")
+
+    def _train_a_batch(self, keywords, contexts, sentences):
+        keyword_data, keyword_length = self._fill_np_matrix(keywords)
+        context_data, context_length = self._fill_np_matrix(contexts)
+        decoder_input, decoder_input_length = self._fill_np_matrix(
+            [start_of_sentence() + sentence[:-1] for sentence in sentences])
+        targets = self._fill_targets(sentences)
+        loss = 0
+        with tf.GradientTape() as tape:
+            keyword_state, context_output, final_output, final_state = self.encoder(keyword_data, context_data)
+            probs, final_state = self.decoder(keyword_state, context_output, decoder_input, decoder_input_length,
+                                              final_output, final_state)
+            loss = loss_func()
+        print(" loss =  %f" % loss)
+
+    def loss_func(real, pred):
+        mask = tf.math.logical_not(tf.math.equal(real, 0))
+        loss_ = loss_object(real, pred)
+
+        mask = tf.cast(mask, dtype=loss_.dtype)
+        loss_ *= mask
+
+        return tf.reduce_mean(loss_)
+
     def _fill_np_matrix(self, texts):
         max_time = max(map(len, texts))  # the len of keyword
         matrix = np.zeros([_BATCH_SIZE, max_time, CHAR_VEC_DIM],
@@ -150,9 +187,14 @@ class GenerateModel(Singleton):
                 matrix[i, j, :] = self.char2vec.get_vect(end_of_sentence())
         for i, text in enumerate(texts):
             matrix[i, : len(text)] = self.char2vec.get_vects(text)
-        seq_length = [len(texts[i]) if i < len(texts) else 0 \
-                      for i in range(_BATCH_SIZE)]
+        seq_length = [len(texts[i]) if i < len(texts) else 0 for i in range(_BATCH_SIZE)]
         return matrix, seq_length
+
+    def _fill_targets(self, sentences):
+        targets = []
+        for sentence in sentences:
+            targets.extend(map(self.char_dict.char2int, sentence))
+        return targets
 
 
 class Encoder(tf.keras.Model):
@@ -181,7 +223,7 @@ class BahdanauAttention(tf.keras.Model):
         super(BahdanauAttention, self).__init__()
 
         self.W1 = tf.keras.layers.Dense(_NUM_UNITS)
-        self.W2 = tf.keras.layers.Dense(_NUM_UNITS*2)
+        self.W2 = tf.keras.layers.Dense(_NUM_UNITS * 2)
         self.V = tf.keras.layers.Dense(1)
 
     def call(self, hidden_state, output):

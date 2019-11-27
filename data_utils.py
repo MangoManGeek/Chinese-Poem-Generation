@@ -1,13 +1,11 @@
 #! /usr/bin/env python3
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 
 from char_dict import end_of_sentence, start_of_sentence
 from paths import gen_data_path, plan_data_path, check_uptodate
 from poems import Poems
 from rank_words import RankedWords
 from segment import Segmenter
-import re
-import subprocess
 
 
 def gen_train_data():
@@ -20,7 +18,7 @@ def gen_train_data():
     gen_data = []
     for poem in poems:
         if len(poem) != 4:
-            continue # Only consider quatrains.
+            continue  # Only consider quatrains.
         valid = True
         context = start_of_sentence()
         gen_lines = []
@@ -29,17 +27,17 @@ def gen_train_data():
             if len(sentence) != 7:
                 valid = False
                 break
-            words = list(filter(lambda seg: seg in ranked_words, 
-                    segmenter.segment(sentence)))
+            words = list(filter(lambda seg: seg in ranked_words,
+                                segmenter.segment(sentence)))
             if len(words) == 0:
                 valid = False
                 break
             keyword = words[0]
-            for word in words[1 : ]:
+            for word in words[1:]:
                 if ranked_words.get_rank(word) < ranked_words.get_rank(keyword):
                     keyword = word
             gen_line = sentence + end_of_sentence() + \
-                    '\t' + keyword + '\t' + context + '\n'
+                       '\t' + keyword + '\t' + context + '\n'
             gen_lines.append(gen_line)
             keywords.append(keyword)
             context += sentence + end_of_sentence()
@@ -56,7 +54,7 @@ def gen_train_data():
 
 def batch_train_data(batch_size):
     """ Training data generator for the poem generator."""
-    gen_train_data() # Shuffle data order and cool down CPU.
+    gen_train_data()  # Shuffle data order and cool down CPU.
     keywords = []
     contexts = []
     sentences = []
