@@ -4,7 +4,6 @@
 from generateModel import GenerateModel
 from plan import train_planner
 from paths import save_dir
-import tensorflow as tf
 import argparse
 import os
 
@@ -23,6 +22,5 @@ if __name__ == '__main__':
         train_planner()
     if args.all or args.generator:
         generator = GenerateModel()
-        checkpoint = tf.train.Checkpoint(generator=generator)
-        generator.train(checkpoint, n_epochs=100)
+        generator.train(n_epochs=100)
     print("All training is done!")

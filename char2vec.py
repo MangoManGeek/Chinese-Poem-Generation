@@ -9,7 +9,6 @@ from poems import Poems
 from singleton import Singleton
 from utils import CHAR_VEC_DIM
 import numpy as np
-import os
 
 
 def _gen_char2vec():
