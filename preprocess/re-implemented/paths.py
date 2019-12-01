@@ -18,6 +18,14 @@ data_wordrank_path = os.path.join(data_dir, 'wordrank.txt')
 data_plan_data_path = os.path.join(data_dir, 'plan_data.txt')
 data_gen_data_path = os.path.join(data_dir, 'gen_data.txt')
 
+sxhy_path=data_sxhy_path
+char_dict_path=data_char_dict_path
+poems_path=data_poems_path
+char2vec_path=data_char2vec_path
+wordrank_path=data_wordrank_path
+plan_data_path=data_plan_data_path
+gen_data_path=data_gen_data_path
+
 # TODO: configure dependencies in another file.
 _dependency_dict = {
     data_poems_path: [data_char_dict_path],
