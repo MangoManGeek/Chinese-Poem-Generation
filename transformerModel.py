@@ -10,9 +10,11 @@ import numpy as np
 import os
 import sys
 import tensorflow as tf
+import transformer_funcs as transformer
 
 _BATCH_SIZE = 64
 _NUM_UNITS = 512
+_EMBED_SIZE = 512
 
 _model_path = os.path.join(save_dir, 'model')
 
@@ -32,6 +34,9 @@ class GenerateModel(Singleton):
         # self.saver = tf.train.Saver(tf.global_variables())
         # self.trained = False
 
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
         # self.key_encoder_GRU = tf.keras.layers.Bidirectional(
         #     tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
         # self.context_encoder_GRU = tf.keras.layers.Bidirectional(
@@ -48,25 +53,19 @@ class GenerateModel(Singleton):
         self.encoder = Encoder()
         self.decoder = Decoder(len(self.char_dict))
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
-
-        if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate = self.learning_rate)
 
         self.checkpoint = tf.train.Checkpoint(encoder=self.encoder, decoer=self.decoder, optimizer=self.optimizer)
-        self.manager = tf.train.CheckpointManager(self.checkpoint, save_dir, max_to_keep=3)
 
     def generate(self, keywords):
-        if not tf.train.get_checkpoint_state(save_dir):
-            print("Please train the model first! (./train.py -g)")
-            sys.exit(1)
-        # try:
-        #     self.checkpoint.restore(self.manager.latest_checkpoint).assert_consumed()
-        #     print("Checkpoint is loaded successfully !")
-        # except AssertionError:
-        #     print("Fail to load checkpoint. Please train the model first! (./train.py -g)")
-        self.checkpoint.restore(self.manager.latest_checkpoint)
-        print("Checkpoint is loaded successfully !")
+        # if not tf.train.get_checkpoint_state(save_dir):
+        #     print("Please train the model first! (./train.py -g)")
+        #     sys.exit(1)
+        try:
+            self.checkpoint.restore(tf.train.latest_checkpoint(save_dir)).assert_consumed()
+            print("Checkpoint is loaded successfully !")
+        except AssertionError:
+            print("Fail to load checkpoint. Please train the model first! (./train.py -g)")
         assert NUM_OF_SENTENCES == len(keywords)
         context = start_of_sentence()
         pron_dict = PronDict()
@@ -76,8 +75,7 @@ class GenerateModel(Singleton):
             context_data, context_length = self._fill_np_matrix(
                 [context] * _BATCH_SIZE)
 
-            keyword_state, context_output, final_output, final_state, context_state = self.encoder(keyword_data,
-                                                                                                   context_data)
+            keyword_state, context_output, final_output, final_state, context_state = self.encoder(keyword_data, context_data)
             char = start_of_sentence()
             for _ in range(7):
                 decoder_input, decoder_input_length = \
@@ -86,9 +84,7 @@ class GenerateModel(Singleton):
                     pass
                 else:
                     keyword_state = final_state
-                probs, final_state, logits = self.decoder(keyword_state, context_output, decoder_input,
-                                                          decoder_input_length, final_output, final_state,
-                                                          context_state)
+                probs, final_state, logits = self.decoder(keyword_state, context_output, decoder_input, decoder_input_length, final_output, final_state, context_state)
                 prob_list = self._gen_prob_list(probs, context, pron_dict)
                 prob_sums = np.cumsum(prob_list)
                 rand_val = prob_sums[-1] * random()
@@ -176,8 +172,8 @@ class GenerateModel(Singleton):
                     self._train_a_batch(keywords, contexts, sentences)
                     batch_no += 1
                     if 0 == batch_no % 32:
-                        self.manager.save()
-                self.manager.save()
+                        self.checkpoint.save(file_prefix=save_dir)
+                self.checkpoint.save(file_prefix=save_dir)
             print("Training is done.")
         except KeyboardInterrupt:
             print("Training is interrupted.")
@@ -189,25 +185,23 @@ class GenerateModel(Singleton):
             [start_of_sentence() + sentence[:-1] for sentence in sentences])
         targets = self._fill_targets(sentences)
 
-        # sentences is from data_utils -->
-        # 澄潭皎镜石崔巍$ 石   ^
-        # 万壑千岩暗绿苔$	暗	^澄潭皎镜石崔巍$
+        #sentences is from data_utils --> (sentence, keyword, context)
+        #澄潭皎镜石崔巍$ 石   ^
+        #万壑千岩暗绿苔$	暗	^澄潭皎镜石崔巍$
 
         # loss, learning_rate = 0
         with tf.GradientTape() as tape:
-            keyword_state, context_output, final_output, final_state, context_state = self.encoder(keyword_data,
-                                                                                                   context_data)
-            probs, final_state, logits = self.decoder(keyword_state, context_output, decoder_input,
-                                                      decoder_input_length,
-                                                      final_output, final_state, context_state)
-            loss = self.loss_func(targets, logits)  # self???
+            keyword_state, context_output, final_output, final_state, context_state = self.encoder(keyword_data, context_data)
+            probs, final_state, logits = self.decoder(keyword_state, context_output, decoder_input, decoder_input_length,
+                                              final_output, final_state, context_state)
+            loss = self.loss_func(targets, logits)  #self???
             # print(" loss =  %f" % loss)
 
-            # where to initialize??
+            #where to initialize??
             learning_rate = self.learning_rate_func(loss)
             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-            # print(" loss =  %f, learning_rate = %f" % (loss, learning_rate))
+            print(" loss =  %f, learning_rate = %f" % (loss, learning_rate))
 
         variables = self.encoder.trainable_variables + self.decoder.trainable_variables
         gradients = tape.gradient(loss, variables)
@@ -215,14 +209,16 @@ class GenerateModel(Singleton):
 
         # return batch_loss #batch_loss??
 
+
+
     def loss_func(self, targets, logits):
         labels = tf.one_hot(targets, depth=len(self.char_dict))
+        # loss = tf.losses.softmax_cross_entropy(onehot_labels = labels, logits = logits)
         loss = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=logits)
         return tf.reduce_mean(loss)
 
     def learning_rate_func(self, loss):
-        learning_rate = tf.clip_by_value(tf.multiply(1.6e-5, tf.pow(2.1, loss)), clip_value_min=0.0002,
-                                         clip_value_max=0.02)
+        learning_rate = tf.clip_by_value(tf.multiply(1.6e-5, tf.pow(2.1, loss)), clip_value_min = 0.0002, clip_value_max = 0.02)
         return learning_rate
 
     def _fill_targets(self, sentences):
@@ -311,19 +307,52 @@ class Decoder(tf.keras.Model):
 
         # encoder_output shape = (batch_size,max_length,hidden_size)
 
-    def call(self, keyword_state, context_output, decoder_input, decoder_input_length, final_output, final_state,
-             context_state):
+    def call(self, keyword_state, context_output, decoder_input, decoder_input_length, final_output, final_state, context_state):
         context_vector = self.attention(context_state, context_output)
-        test2 = np.repeat(context_vector[:, np.newaxis, :], 8, axis=1)
-        x_test = tf.concat([test2, decoder_input], axis=2)
 
-        output, state = self.decoder_gru(x_test, initial_state=keyword_state)
+        # x shape after passing through embedding == (batch_size,1,embedding_dim)
+        # x = self.embedding(x)
+
+        # x shape after concatenation == (batch_size,1,embedding_dim + hidden_size)
+        test = tf.expand_dims(context_vector, 1)
+        test = context_vector
+
+        ################## another way to concate ##################
+        # test2 = np.repeat(context_vector[:, np.newaxis, :], 8, axis=1)
+        # x_test = tf.concat([test2, decoder_input], axis=2)
+        #
+        # output, state = self.decoder_gru(x_test, initial_state=keyword_state)
+        # reshaped_outputs = self._reshape_decoder_outputs(output, decoder_input_length)
+        # logits = self.fc(reshaped_outputs)  # add bias??
+        # prob = tf.nn.softmax(logits)
+        #
+        # return prob, state, logits
+        ############################################################
+
+        x = tf.concat([tf.expand_dims(context_vector, 1), decoder_input], axis=1)
+
+        # passing the concatenated vector to the GRU
+        output, state = self.decoder_gru(x, initial_state=keyword_state)
+
         reshaped_outputs = self._reshape_decoder_outputs(output, decoder_input_length)
-        logits = self.fc(reshaped_outputs)  # add bias??
+
+        logits = self.fc(reshaped_outputs) #add bias??
+
         prob = tf.nn.softmax(logits)
+
+        # output shape == (batch_size * 1,hidden_size)
+        # output = tf.reshape(output, (-1, output.shape[2]))
+
+        # output shape == (batch_size,vocab)
+        # x = self.fc(output)
 
         return prob, state, logits
 
+        # final_output, final_state, _ = self.decoder(attention_wrapper)
+        # reshaped_outputs = self._reshape_decoder_outputs(final_output, decoder_input_length)
+        # logits = self.dense(reshaped_outputs)
+        # prob = tf.nn.softmax(logits)
+        # return prob, final_state
 
     def _reshape_decoder_outputs(self, decoder_outputs, decoder_input_length):
         """ Reshape decoder_outputs into shape [?, _NUM_UNITS]. """
