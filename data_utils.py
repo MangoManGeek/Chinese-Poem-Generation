@@ -25,23 +25,30 @@ def gen_train_data():
         keywords = []
         for sentence in poem:
             if len(sentence) != 7:
+                #只考虑七字诀句
                 valid = False
                 break
+            #get a list of selected words from this sentence
+            #ignore all words if they are not in the ranked words list
             words = list(filter(lambda seg: seg in ranked_words,
                                 segmenter.segment(sentence)))
             if len(words) == 0:
                 valid = False
                 break
             keyword = words[0]
+
+            # from all words in this sentence, get the word with highest text_rank score
             for word in words[1:]:
                 if ranked_words.get_rank(word) < ranked_words.get_rank(keyword):
                     keyword = word
+
             gen_line = sentence + end_of_sentence() + \
                        '\t' + keyword + '\t' + context + '\n'
             gen_lines.append(gen_line)
             keywords.append(keyword)
             context += sentence + end_of_sentence()
         if valid:
+            # plan data: each line is four keywords from the 4 sentences
             plan_data.append('\t'.join(keywords) + '\n')
             gen_data.extend(gen_lines)
     with open(plan_data_path, 'w') as fout:
