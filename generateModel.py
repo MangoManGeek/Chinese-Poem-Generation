@@ -48,7 +48,7 @@ class GenerateModel(Singleton):
         self.encoder = Encoder()
         self.decoder = Decoder(len(self.char_dict))
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+        self.optimizer = tf.keras.optimizers.Adadelta(learning_rate=self.learning_rate)
 
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
@@ -86,7 +86,7 @@ class GenerateModel(Singleton):
                     pass
                 else:
                     keyword_state = final_state
-                probs, final_state, logits = self.decoder(keyword_state, context_output, decoder_input,
+                probs, final_state, _ = self.decoder(keyword_state, context_output, decoder_input,
                                                           decoder_input_length, final_output, final_state,
                                                           context_state)
                 prob_list = self._gen_prob_list(probs, context, pron_dict)
@@ -201,17 +201,11 @@ class GenerateModel(Singleton):
                                                       decoder_input_length,
                                                       final_output, final_state, context_state)
             loss = self.loss_func(targets, logits)  # self???
-            # print(" loss =  %f" % loss)
-
-            # where to initialize??
-            learning_rate = self.learning_rate_func(loss)
-            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-
-            # print(" loss =  %f, learning_rate = %f" % (loss, learning_rate))
+            print(" loss =  %f" % loss)
 
         variables = self.encoder.trainable_variables + self.decoder.trainable_variables
         gradients = tape.gradient(loss, variables)
-        optimizer.apply_gradients(zip(gradients, variables))
+        self.optimizer.apply_gradients(zip(gradients, variables))
 
         # return batch_loss #batch_loss??
 
@@ -304,7 +298,7 @@ class Decoder(tf.keras.Model):
     def __init__(self, char_dict_len):
         super(Decoder, self).__init__()
 
-        self.decoder_gru = tf.keras.layers.GRU(units=_NUM_UNITS, return_sequences=True, return_state=True)
+        self.decoder_gru = tf.keras.layers.GRU(units=_NUM_UNITS * 2, return_sequences=True, return_state=True)
         self.fc = tf.keras.layers.Dense(char_dict_len)
 
         self.attention = BahdanauAttention()
@@ -313,11 +307,11 @@ class Decoder(tf.keras.Model):
 
     def call(self, keyword_state, context_output, decoder_input, decoder_input_length, final_output, final_state,
              context_state):
-        context_vector = self.attention(context_state, context_output)
+        context_vector = self.attention(final_state, final_output)
         test2 = np.repeat(context_vector[:, np.newaxis, :], 8, axis=1)
         x_test = tf.concat([test2, decoder_input], axis=2)
 
-        output, state = self.decoder_gru(x_test, initial_state=keyword_state)
+        output, state = self.decoder_gru(x_test, initial_state=final_state)
         reshaped_outputs = self._reshape_decoder_outputs(output, decoder_input_length)
         logits = self.fc(reshaped_outputs)  # add bias??
         prob = tf.nn.softmax(logits)
