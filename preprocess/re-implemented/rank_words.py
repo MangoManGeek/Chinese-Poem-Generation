@@ -95,6 +95,9 @@ class RankedWords(Singleton):
         poems = Poems()
         adjlists = dict()   # 2D dict, dict[word1][word2]=prob(going from word1 to word2)
         # Count number of co-occurrence.
+
+        """
+        ######################## count relationship per sentence ###################
         for poem in poems:
             for sentence in poem:
                 words = []
@@ -118,6 +121,38 @@ class RankedWords(Singleton):
                             adjlists[words[j]][words[i]] = 1.0
                         else:
                             adjlists[words[j]][words[i]] += 1.0
+
+        ######################## end count relationship per sentence ###################
+        """
+
+
+        ######################## count relationship per poem ###################
+        for poem in poems:
+            for sentence in poem:
+                words = []
+                for word in segmenter.segment(sentence):
+                    # for each word selected from the sentence
+                    if word not in self.stopwords:
+                        #keep only non-stopwords words
+                        words.append(word)
+            for word in words:
+                if word not in adjlists:
+                    #initialize all words to a new dict()
+                    adjlists[word] = dict()
+            for i in range(len(words)):
+                for j in range(i + 1, len(words)):
+                    #### if two words present in the same sentence, their score +=1 #####
+                    if words[j] not in adjlists[words[i]]:
+                        adjlists[words[i]][words[j]] = 1.0
+                    else:
+                        adjlists[words[i]][words[j]] += 1.0
+                    if words[i] not in adjlists[words[j]]:
+                        adjlists[words[j]][words[i]] = 1.0
+                    else:
+                        adjlists[words[j]][words[i]] += 1.0
+
+        ######################## end count relationship per poem ###################
+
         # Normalize weights.
         for a in adjlists:
             sum_w = sum(w for _, w in adjlists[a].items())

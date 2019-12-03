@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 from char_dict import CharDict
-from paths import raw_dir, poems_path, check_uptodate
+from paths import raw_dir, data_poems_path, check_uptodate
 from random import shuffle
 from singleton import Singleton
 from utils import split_sentences
@@ -10,11 +10,14 @@ import os
 
 _corpus_list = ['qts_tab.txt']
 
-
+"""
+# split and write all sentences from the corpus to a file
+# save only sentences which all charaters exist in top N most frequent words
+"""
 def _gen_poems():
     print("Parsing poems ...")
     char_dict = CharDict()
-    with open(poems_path, 'w') as fout:
+    with open(data_poems_path, 'w') as fout:
         for corpus in _corpus_list:
             with open(os.path.join(raw_dir, corpus), 'r') as fin:
                 for line in fin.readlines()[1 : ]:
@@ -31,14 +34,16 @@ def _gen_poems():
                         fout.write(' '.join(sentences) + '\n')
             print("Finished parsing %s." % corpus)
 
-
+"""
+# class to fetch all pre-recorded sentences
+"""
 class Poems(Singleton):
 
     def __init__(self):
-        if not check_uptodate(poems_path):
+        if not check_uptodate(data_poems_path):
             _gen_poems()
         self.poems = []
-        with open(poems_path, 'r') as fin:
+        with open(data_poems_path, 'r') as fin:
             for line in fin.readlines():
                 self.poems.append(line.strip().split())
 

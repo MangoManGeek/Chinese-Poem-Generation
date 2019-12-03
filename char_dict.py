@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 #-*- coding:utf-8 -*-
 
-from paths import raw_dir, char_dict_path, check_uptodate
+from paths import raw_dir, data_char_dict_path, check_uptodate
 from singleton import Singleton
 from utils import is_cn_char
 import os
@@ -19,6 +19,12 @@ def start_of_sentence():
 def end_of_sentence():
     return '$'
 
+
+"""
+# go through all characters in the corpus
+# record the top N characters with the most frequency 
+# write to char_dict file
+"""
 def _gen_char_dict():
     print("Generating dictionary from corpus ...")
     
@@ -36,22 +42,25 @@ def _gen_char_dict():
     cnt2char = sorted(char_cnts.items(), key = lambda x: -x[1])
 
     # Store most popular chars into the file.
-    with open(char_dict_path, 'w') as fout:
+    with open(data_char_dict_path, 'w') as fout:
         for i in range(min(MAX_DICT_SIZE - 2, len(cnt2char))):
             fout.write(cnt2char[i][0])
 
 
+"""
+# class that map each top frequency char to an id
+"""
 class CharDict(Singleton):
 
     def __init__(self):
-        if not check_uptodate(char_dict_path):
+        if not check_uptodate(data_char_dict_path):
             _gen_char_dict()
         self._int2char = []
         self._char2int = dict()
         # Add start-of-sentence symbol.
         self._int2char.append(start_of_sentence())
         self._char2int[start_of_sentence()] = 0
-        with open(char_dict_path, 'r') as fin:
+        with open(data_char_dict_path, 'r') as fin:
             idx = 1
             for ch in fin.read():
                 self._int2char.append(ch)

@@ -130,3 +130,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ignore mac file manager
+*.DS_Store
+.DS_Store
+
+# ignore pyc files
+.pyc

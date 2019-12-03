@@ -12,10 +12,14 @@ import sys
 
 _stopwords_path = os.path.join(raw_dir, 'stopwords.txt')
 
-
+NUM_Of_ITERATIONS=100
 _damp = 0.85
+#_damp = 1
 
 
+"""
+# what's the purpose of stop words?
+"""
 def _get_stopwords():
     stopwords = set()
     with open(_stopwords_path, 'r') as fin:
@@ -45,10 +49,12 @@ class RankedWords(Singleton):
         # Value initialization.
         scores = dict()
         for word in adjlists:
+            #score[0] is previous score, score[1] is new score
             scores[word] = [1.0, 1.0]
 
         # Synchronous value iterations.
         itr = 0
+        #### train text rank here #####
         while True:
             sys.stdout.write("[TextRank] Iteration %d ..." % itr)
             sys.stdout.flush()
@@ -56,6 +62,9 @@ class RankedWords(Singleton):
                 scores[word][1] = (1.0 - _damp) + _damp * \
                         sum(adjlists[other][word] * scores[other][0] 
                                 for other in adjlist)
+            
+
+            #eps is the difference between new score and previous score, used to check for convergence
             eps = 0
             for word in scores:
                 eps = max(eps, abs(scores[word][0] - scores[word][1]))
@@ -63,7 +72,8 @@ class RankedWords(Singleton):
             print(" eps = %f" % eps)
             # if eps <= 1e-6:
             #     break
-            if itr == 200:
+            #if itr == 200:  # train for only 200 iteration ###########################
+            if itr == NUM_Of_ITERATIONS:
                 break
             itr += 1
 
@@ -83,19 +93,26 @@ class RankedWords(Singleton):
         print("[TextRank] Generating word graph ...")
         segmenter = Segmenter()
         poems = Poems()
-        adjlists = dict()
+        adjlists = dict()   # 2D dict, dict[word1][word2]=prob(going from word1 to word2)
         # Count number of co-occurrence.
+
+        """
+        ######################## count relationship per sentence ###################
         for poem in poems:
             for sentence in poem:
                 words = []
                 for word in segmenter.segment(sentence):
+                    # for each word selected from the sentence
                     if word not in self.stopwords:
+                        #keep only non-stopwords words
                         words.append(word)
                 for word in words:
                     if word not in adjlists:
+                        #initialize all words to a new dict()
                         adjlists[word] = dict()
                 for i in range(len(words)):
                     for j in range(i + 1, len(words)):
+                        #### if two words present in the same sentence, their score +=1 #####
                         if words[j] not in adjlists[words[i]]:
                             adjlists[words[i]][words[j]] = 1.0
                         else:
@@ -104,6 +121,38 @@ class RankedWords(Singleton):
                             adjlists[words[j]][words[i]] = 1.0
                         else:
                             adjlists[words[j]][words[i]] += 1.0
+
+        ######################## end count relationship per sentence ###################
+        """
+
+
+        ######################## count relationship per poem ###################
+        for poem in poems:
+            for sentence in poem:
+                words = []
+                for word in segmenter.segment(sentence):
+                    # for each word selected from the sentence
+                    if word not in self.stopwords:
+                        #keep only non-stopwords words
+                        words.append(word)
+            for word in words:
+                if word not in adjlists:
+                    #initialize all words to a new dict()
+                    adjlists[word] = dict()
+            for i in range(len(words)):
+                for j in range(i + 1, len(words)):
+                    #### if two words present in the same sentence, their score +=1 #####
+                    if words[j] not in adjlists[words[i]]:
+                        adjlists[words[i]][words[j]] = 1.0
+                    else:
+                        adjlists[words[i]][words[j]] += 1.0
+                    if words[i] not in adjlists[words[j]]:
+                        adjlists[words[j]][words[i]] = 1.0
+                    else:
+                        adjlists[words[j]][words[i]] += 1.0
+
+        ######################## end count relationship per poem ###################
+
         # Normalize weights.
         for a in adjlists:
             sum_w = sum(w for _, w in adjlists[a].items())
