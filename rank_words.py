@@ -10,7 +10,12 @@ import os
 import sys
 
 
+from tencent_embedding_utils.word2vec_utils import get_tencent_embedding_keyedVectors
+
+
 _stopwords_path = os.path.join(raw_dir, 'stopwords.txt')
+
+_tencent_embedding_path=''
 
 NUM_Of_ITERATIONS=100
 _damp = 0.85
@@ -152,6 +157,53 @@ class RankedWords(Singleton):
                         adjlists[words[j]][words[i]] += 1.0
 
         ######################## end count relationship per poem ###################
+
+        # Normalize weights.
+        for a in adjlists:
+            sum_w = sum(w for _, w in adjlists[a].items())
+            for b in adjlists[a]:
+                adjlists[a][b] /= sum_w
+        return adjlists
+
+    def _build_adjlists_from_tencent_embeddings(self):
+        print("[TextRank] Generating word graph ...")
+        segmenter = Segmenter()
+        poems = Poems()
+        adjlists = dict()   # 2D dict, dict[word1][word2]=prob(going from word1 to word2)
+        wv=get_tencent_embedding_keyedVectors(_tencent_embedding_path)
+
+
+
+        # Count number of co-occurrence.
+
+
+        ######################## get a 2D cos sim matrix for all words ###################
+        words = set()
+        for poem in poems:
+            for sentence in poem:
+                for word in segmenter.segment(sentence):
+                    # for each word selected from the sentence
+                    if word not in self.stopwords:
+                        #keep only non-stopwords words
+                        words.add(word)
+        for word in words:
+            if word not in adjlists:
+                #initialize all words to a new dict()
+                adjlists[word] = dict()
+
+        for word in words:
+            for other in words:
+
+                if word==other:
+                    continue
+
+                if other in adjlists[word] or word in adjlists[other]:
+                    continue
+
+                sim=wv.similarity(word,other)
+                adjlists[word][other]=sim
+                adjlists[other][word]=sim
+
 
         # Normalize weights.
         for a in adjlists:
