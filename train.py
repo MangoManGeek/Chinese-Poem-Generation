@@ -21,6 +21,6 @@ if __name__ == '__main__':
     if args.all or args.planner:
         train_planner()
     if args.all or args.generator:
-        generator = GenerateModel()
+        generator = GenerateModel(True)
         generator.train(n_epochs=100)
     print("All training is done!")

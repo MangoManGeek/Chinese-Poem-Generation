@@ -6,7 +6,7 @@ from plan import Planner
 
 if __name__ == '__main__':
     planner = Planner()
-    generator = GenerateModel()
+    generator = GenerateModel(False)
 
     while True:
         hints = input("Provide a title >> ")

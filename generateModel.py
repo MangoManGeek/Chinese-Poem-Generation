@@ -19,34 +19,16 @@ _model_path = os.path.join(save_dir, 'model')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
-class GenerateModel(Singleton):
-    def __init__(self):
+class GenerateModel(tf.keras.Model):
+    def __init__(self, istrain):
         super(GenerateModel, self).__init__()
 
         self.char_dict = CharDict()
         self.char2vec = Char2Vec()
         self.learning_rate = 0.01
 
-        # if not os.path.exists(save_dir):
-        #     os.mkdir(save_dir)
-        # self.saver = tf.train.Saver(tf.global_variables())
-        # self.trained = False
-
-        # self.key_encoder_GRU = tf.keras.layers.Bidirectional(
-        #     tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
-        # self.context_encoder_GRU = tf.keras.layers.Bidirectional(
-        #     tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
-
-        # self.attention = tfa.seq2seq.BahdanauAttention(units=_NUM_UNITS)
-        # self.decoder_GRU = tf.keras.layers.GRUCell(units=_NUM_UNITS)
-        # self.attention_wrapper = tfa.seq2seq.attention_wrapper(cell=self.decoder_GRU, attention_machanism=self.attention)
-        # self.decoder = tfa.seq2seq.dynamic_decode()
-
-        # self.dense_layer = tf.keras.layers.Dense(intput = )
-        # self.dense = tf.keras.layers.Dense(input_dim=_NUM_UNITS, units=len(self.char_dict))
-
         self.encoder = Encoder()
-        self.decoder = Decoder(len(self.char_dict))
+        self.decoder = Decoder(len(self.char_dict), istrain)
 
         self.optimizer = tf.keras.optimizers.Adadelta(learning_rate=self.learning_rate)
 
@@ -295,8 +277,10 @@ class BahdanauAttention(tf.keras.Model):
 
 
 class Decoder(tf.keras.Model):
-    def __init__(self, char_dict_len):
+    def __init__(self, char_dict_len, isTrain):
         super(Decoder, self).__init__()
+
+        self.train = isTrain
 
         self.decoder_gru = tf.keras.layers.GRU(units=_NUM_UNITS * 2, return_sequences=True, return_state=True)
         self.fc = tf.keras.layers.Dense(char_dict_len)
@@ -308,7 +292,9 @@ class Decoder(tf.keras.Model):
     def call(self, keyword_state, context_output, decoder_input, decoder_input_length, final_output, final_state,
              context_state):
         context_vector = self.attention(final_state, final_output)
-        test2 = np.repeat(context_vector[:, np.newaxis, :], 8, axis=1)
+        test2 = np.repeat(context_vector[:, np.newaxis, :], 1, axis=1)
+        if self.train:
+            test2 = np.repeat(context_vector[:, np.newaxis, :], 8, axis=1)
         x_test = tf.concat([test2, decoder_input], axis=2)
 
         output, state = self.decoder_gru(x_test, initial_state=final_state)
