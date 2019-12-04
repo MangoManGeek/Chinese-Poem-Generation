@@ -103,7 +103,7 @@ class Multi_Headed(tf.keras.layers.Layer):
 
         self.dense_layer = tf.keras.layers.Dense(input_dim=emb_sz, units=emb_sz)
 
-    @tf.function
+    # @tf.function
     def call(self, inputs_for_keys, inputs_for_values, inputs_for_queries):
         """
         FOR CS2470 STUDENTS:
@@ -140,7 +140,7 @@ class Feed_Forwards(tf.keras.layers.Layer):
         self.layer_1 = tf.keras.layers.Dense(emb_sz, activation='relu')
         self.layer_2 = tf.keras.layers.Dense(emb_sz)
 
-    @tf.function
+    # @tf.function
     def call(self, inputs):
         """
         This functions creates a feed forward network as described in 3.3
@@ -171,7 +171,7 @@ class Transformer_Block(tf.keras.layers.Layer):
 
         self.layer_norm = tf.keras.layers.LayerNormalization(axis=-1)
 
-    @tf.function
+    # @tf.function
     def call(self, inputs, context=None):
         """
         This functions calls a transformer block.
@@ -221,7 +221,7 @@ class Position_Encoding_Layer(tf.keras.layers.Layer):
         super(Position_Encoding_Layer, self).__init__()
         self.positional_embeddings = self.add_weight("pos_embed", shape=[window_sz, emb_sz], trainable=False)
 
-    @tf.function
+    # @tf.function
     def call(self, x):
         """
         Adds positional embeddings to word embeddings.
