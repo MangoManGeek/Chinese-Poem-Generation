@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 from generateModel import GenerateModel
+from transformerModel import GenerateTransformerModel
 from plan import train_planner
 from paths import save_dir
 import argparse
@@ -21,6 +22,8 @@ if __name__ == '__main__':
     if args.all or args.planner:
         train_planner()
     if args.all or args.generator:
-        generator = GenerateModel(True)
-        generator.train(n_epochs=100)
+        # generator = GenerateModel()
+        generator = GenerateTransformerModel(True)
+        generator.train(n_epochs=500)
     print("All training is done!")
+
