@@ -217,9 +217,18 @@ class Transformer_Block(tf.keras.layers.Layer):
 
 
 class Position_Encoding_Layer(tf.keras.layers.Layer):
+    # def __init__(self, window_sz, emb_sz):
+    #     super(Position_Encoding_Layer, self).__init__()
+    #     self.positional_embeddings = self.add_weight("pos_embed", shape=[window_sz, emb_sz], trainable=False)
+
     def __init__(self, window_sz, emb_sz):
         super(Position_Encoding_Layer, self).__init__()
         self.positional_embeddings = self.add_weight("pos_embed", shape=[window_sz, emb_sz], trainable=False)
+        # self.num_units = num_units
+        # self.masking = masking
+        # self.scale = scale
+        # self.scope = scope
+        # self.reuse = reuse
 
     # @tf.function
     def call(self, x):
@@ -230,3 +239,44 @@ class Position_Encoding_Layer(tf.keras.layers.Layer):
         :return: [BATCH_SIZE x (ENG/FRN)_WINDOW_SIZE x EMBEDDING_SIZE ] new word embeddings with added positional encodings
         """
         return x + self.positional_embeddings
+
+    # def call(self, x):
+    #     '''Sinusoidal Positional_Encoding.
+    #
+    #     Args:
+    #       inputs: A 2d Tensor with shape of (N, T).
+    #       num_units: Output dimensionality
+    #       zero_pad: Boolean. If True, all the values of the first row (id = 0) should be constant zero
+    #       scale: Boolean. If True, the output will be multiplied by sqrt num_units(check details from paper)
+    #       scope: Optional scope for `variable_scope`.
+    #       reuse: Boolean, whether to reuse the weights of a previous layer
+    #         by the same name.
+    #
+    #     Returns:
+    #         A 'Tensor' with one more rank than inputs's, with the dimensionality should be 'num_units'
+    #     '''
+    #
+    #     E = x.get_shape().as_list()[-1]  # static
+    #     N, T = tf.shape(x)[0], tf.shape(x)[1]  # dynamic
+    #     with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+    #         # position indices
+    #         position_ind = tf.tile(tf.expand_dims(tf.range(T), 0), [N, 1])  # (N, T)
+    #
+    #         # First part of the PE function: sin and cos argument
+    #         position_enc = np.array([
+    #             [pos / np.power(10000, (i - i % 2) / E) for i in range(E)]
+    #             for pos in range(self.num_units)])
+    #
+    #         # Second part, apply the cosine to even columns and sin to odds.
+    #         position_enc[:, 0::2] = np.sin(position_enc[:, 0::2])  # dim 2i
+    #         position_enc[:, 1::2] = np.cos(position_enc[:, 1::2])  # dim 2i+1
+    #         position_enc = tf.convert_to_tensor(position_enc, tf.float32)  # (maxlen, E)
+    #
+    #         # lookup
+    #         outputs = tf.nn.embedding_lookup(position_enc, position_ind)
+    #
+    #         # masks
+    #         if self.masking:
+    #             outputs = tf.where(tf.equal(x, 0), x, outputs)
+    #
+    #         return tf.to_float(outputs)
