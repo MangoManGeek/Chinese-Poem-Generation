@@ -15,7 +15,7 @@ from tencent_embedding_utils.word2vec_utils import get_tencent_embedding_keyedVe
 
 _stopwords_path = os.path.join(raw_dir, 'stopwords.txt')
 
-_tencent_embedding_path=''
+_tencent_embedding_path='../data/truncated_Tencent_AILab_ChineseEmbedding.txt'
 
 NUM_Of_ITERATIONS=100
 _damp = 0.85
@@ -49,6 +49,7 @@ class RankedWords(Singleton):
     def _do_text_rank(self):
         print("Do text ranking ...")
         adjlists = self._get_adjlists()
+        #adjlists = self._build_adjlists_from_tencent_embeddings()
         print("[TextRank] Total words: %d" % len(adjlists))
 
         # Value initialization.
