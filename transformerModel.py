@@ -15,6 +15,7 @@ import transformer_funcs as transformer
 _BATCH_SIZE = 64
 _NUM_UNITS = 512
 _WINDOW_SIZE = 7
+_CURRENT_LEN = 1
 
 _model_path = os.path.join(save_dir, 'model')
 
@@ -27,7 +28,7 @@ class GenerateTransformerModel(tf.keras.Model):
 
         self.char_dict = CharDict()
         self.char2vec = Char2Vec()
-        self.learning_rate = 0.01
+        self.learning_rate = 0.001
 
         # if not os.path.exists(save_dir):
         #     os.mkdir(save_dir)
@@ -67,6 +68,7 @@ class GenerateTransformerModel(tf.keras.Model):
         #     print("Checkpoint is loaded successfully !")
         # except AssertionError:
         #     print("Fail to load checkpoint. Please train the model first! (./train.py -g)")
+
         self.checkpoint.restore(self.manager.latest_checkpoint)
         print("Checkpoint is loaded successfully !")
         assert NUM_OF_SENTENCES == len(keywords)
@@ -98,6 +100,7 @@ class GenerateTransformerModel(tf.keras.Model):
                         break
                 context += char
             context += end_of_sentence()
+
         return context[1:].split(end_of_sentence())
 
     def _gen_prob_list(self, probs, context, pron_dict):
@@ -210,8 +213,13 @@ class Encoder(tf.keras.Model):
     def __init__(self, isTrain):
         super(Encoder, self).__init__()
 
-        self.window_size = 1
+        if isTrain:
+            self.window_size = 25
+        else:
+            self.window_size = 9
+        self.window_size = 25
         self.isTrain = isTrain
+        self.dropout_rate = 0.1
 
         # Create positional encoder layers
         # self.pos_encoder_keyword = transformer.Position_Encoding_Layer(self.window_size, _NUM_UNITS)
@@ -220,17 +228,29 @@ class Encoder(tf.keras.Model):
         #transformer encoder
         self.encoder = transformer.Transformer_Block(_NUM_UNITS, is_decoder=False, multi_headed=True)
 
-        # Define dense layer(s)
-        self.dense_layer = tf.keras.layers.Dense(units=8)
+        self.dropout = tf.keras.layers.Dropout(self.dropout_rate)
 
     def call(self, keyword_data, context_data):
         ####1. concate keyword and context first
         # keyword_pos = self.pos_encoder_keyword(keyword_data) #[64, 2, 512]
-        context_pos = self.pos_encoder_context(context_data) #[64, 25/1, 512]
-        contate_pos_data = tf.concat([keyword_data, context_pos], axis=1)
-        encoder_output = self.encoder(contate_pos_data)
+        # if self.isTrain:
+        #     context_pos = self.pos_encoder_context(context_data)  # [64, 25/1, 512]
+        # else:
+        #     context_pos = context_data
+
+        context_pos = context_data
+        # if not self.isTrain:
+        #     context_pos = self.pos_encoder_context(context_data) #[64, 25/1, 512]
+
+        # context_pos = self.pos_encoder_context(context_data)  # [64, 25/1, 512]
+
+
+        concate_pos_data = tf.concat([keyword_data, context_pos], axis=1)
+        # concate_pos_data_drop = self.dropout(concate_pos_data)
+        encoder_output = self.encoder(concate_pos_data)
         # if self.isTrain:
         #     encoder_output = self.dense_layer(encoder_output)
+
         return encoder_output
 
 
@@ -244,17 +264,22 @@ class Decoder(tf.keras.Model):
             self.window_size = 1
 
         self.isTrain = isTrain
+        self.dropout_rate = 0.1
 
-        self.pos_decoder = transformer.Position_Encoding_Layer(self.window_size, _NUM_UNITS)
+        # self.pos_decoder = transformer.Position_Encoding_Layer(self.window_size, _NUM_UNITS)
 
         self.decoder = transformer.Transformer_Block(_NUM_UNITS, is_decoder=True, multi_headed=True)
 
-        self.dense_layer = tf.keras.layers.Dense(input_dim=_NUM_UNITS, units=char_dict_len)
+        self.dense_layer3 = tf.keras.layers.Dense(input_dim=_NUM_UNITS, units=char_dict_len)
+
+        self.dropout = tf.keras.layers.Dropout(self.dropout_rate)
 
         # encoder_output shape = (batch_size,max_length,hidden_size)
 
     def call(self, encoder_output, decoder_input, decoder_input_length):
-        decoder_pos = self.pos_decoder(decoder_input)
+        # decoder_pos = self.pos_decoder(decoder_input)
+        # decoder_pos = self.dropout(decoder_pos)
+        decoder_pos = decoder_input
         if self.isTrain:
             lcm = np.lcm(self.window_size, encoder_output.shape[1])
             decoder_pos_reshape = np.repeat(decoder_pos, lcm/decoder_pos.shape[1], axis=1)
@@ -263,13 +288,18 @@ class Decoder(tf.keras.Model):
             decoder_pos_reshape = np.repeat(decoder_pos, encoder_output.shape[1], axis=1)
             encoder_reshape = encoder_output
 
+        # decoder_pos_reshape = np.repeat(decoder_pos, encoder_output.shape[1], axis=1)
+        # encoder_reshape = encoder_output
+
+        # decoder_pos_reshape = self.dropout(decoder_pos_reshape)
+
         # decoder_pos_reshape = tf.broadcast_to(decoder_pos, shape=[64, encoder_output.shape[1], 512])
 
         decoder_output = self.decoder(decoder_pos_reshape, context=encoder_reshape)
 
         reshaped_outputs = self._reshape_decoder_outputs(decoder_output, decoder_input_length)
 
-        logits = self.dense_layer(reshaped_outputs) #add bias??
+        logits = self.dense_layer3(reshaped_outputs)
 
         prob = tf.nn.softmax(logits, -1)
 
@@ -312,10 +342,12 @@ class Decoder(tf.keras.Model):
         return reshaped_outputs
 
 
+
+
 if __name__ == '__main__':
     a = 0
-    generator = GenerateModel(isTrain=False)
-    keywords = ['时', '变', '雪', '新']
+    generator = GenerateTransformerModel(isTrain=False)
+    keywords = ['四时', '变', '雪', '新']
     poem = generator.generate(keywords)
     for sentence in poem:
         print(sentence)
