@@ -19,6 +19,7 @@ class Segmenter(Singleton):
 
     def segment(self, sentence):
         # TODO: try CRF-based segmentation.
+        """
         toks = []
         idx = 0
         while idx + 4 <= len(sentence):
@@ -39,6 +40,8 @@ class Segmenter(Singleton):
                 for tok in jieba.lcut(sentence[idx : ]):
                     toks.append(tok)
         return toks
+        """
+        return jieba.lcut(sentence)
 
 
 # For testing purpose.
