@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from generateModel import GenerateModel
+from transformerModel import GenerateTransformerModel
 from plan import Planner
 
 if __name__ == '__main__':
     planner = Planner()
-    generator = GenerateModel(False)
+    # generator = GenerateModel()
+    generator = GenerateTransformerModel(False)
+
 
     while True:
         hints = input("Provide a title >> ")
@@ -16,4 +19,5 @@ if __name__ == '__main__':
         print("Poem generated:")
         for sentence in poem:
             print(sentence)
+
 
