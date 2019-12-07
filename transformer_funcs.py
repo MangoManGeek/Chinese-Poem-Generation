@@ -205,7 +205,8 @@ class Transformer_Block(tf.keras.layers.Layer):
         if self.is_decoder:
             assert context is not None, "Decoder blocks require context"
 
-            context_atten_out = self.self_context_atten(atten_normalized, context, context)
+#             context_atten_out = self.self_context_atten(atten_normalized, context, context)
+            context_atten_out = self.self_context_atten(context, context, atten_normalized)
             context_atten_out += atten_normalized
             atten_normalized = self.layer_norm(context_atten_out)
 
