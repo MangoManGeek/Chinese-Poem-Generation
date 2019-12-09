@@ -140,7 +140,7 @@ def get_score(sentence):
         if word in word_scores:
             score += word_scores[word]
             count += 1
-        else:
+        # else:
             # print('{w} does not have a score'.format(w=word))
 
     return score / count
@@ -164,7 +164,7 @@ def main():
         keyword = listWords[i]
         keywords = planner.plan(keyword)
         poem = generator.generate(keywords)
-        score = eval_poems(poem)
+        score = eval_poems(poem, sorted_poem_scores1, sorted_poem_scores2, sorted_poem_scores3)
         avg_score += score
         for sentence in poem:
             print(sentence)
