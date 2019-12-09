@@ -161,7 +161,7 @@ class GenerateTransformerModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             encoder_output = self.encoder(keyword_data, context_data)
             probs, logits, decoder_output = self.decoder(encoder_output, decoder_input, decoder_input_length)
-            loss = self.loss_func(targets, logits)
+            loss = self.loss_func(targets, logits, probs)
             # print(" loss =  %f" % loss)
 
             #where to initialize??
@@ -178,11 +178,45 @@ class GenerateTransformerModel(tf.keras.Model):
 
 
 
-    def loss_func(self, targets, logits):
-        labels = tf.one_hot(targets, depth=len(self.char_dict))
+    def loss_func(self, targets, logits, probs):
+        labels = self.label_smoothing(tf.one_hot(targets, depth=len(self.char_dict)))
         # loss = tf.losses.softmax_cross_entropy(onehot_labels = labels, logits = logits)
         loss = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+        # loss = tf.keras.losses.sparse_categorical_crossentropy(labels, probs, from_logits=False)
         return tf.reduce_mean(loss)
+
+    def label_smoothing(self,inputs, epsilon=0.1):
+        '''Applies label smoothing. See 5.4 and https://arxiv.org/abs/1512.00567.
+        inputs: 3d tensor. [N, T, V], where V is the number of vocabulary.
+        epsilon: Smoothing rate.
+
+        For example,
+
+        ```
+        import tensorflow as tf
+        inputs = tf.convert_to_tensor([[[0, 0, 1],
+           [0, 1, 0],
+           [1, 0, 0]],
+          [[1, 0, 0],
+           [1, 0, 0],
+           [0, 1, 0]]], tf.float32)
+
+        outputs = label_smoothing(inputs)
+
+        with tf.Session() as sess:
+            print(sess.run([outputs]))
+
+        >>
+        [array([[[ 0.03333334,  0.03333334,  0.93333334],
+            [ 0.03333334,  0.93333334,  0.03333334],
+            [ 0.93333334,  0.03333334,  0.03333334]],
+           [[ 0.93333334,  0.03333334,  0.03333334],
+            [ 0.93333334,  0.03333334,  0.03333334],
+            [ 0.03333334,  0.93333334,  0.03333334]]], dtype=float32)]
+        ```
+        '''
+        V = inputs.get_shape().as_list()[-1]  # number of channels
+        return ((1 - epsilon) * inputs) + (epsilon / V)
 
     def learning_rate_func(self, loss):
         learning_rate = tf.clip_by_value(tf.multiply(1.6e-5, tf.pow(2.1, loss)), clip_value_min = 0.0002, clip_value_max = 0.02)
