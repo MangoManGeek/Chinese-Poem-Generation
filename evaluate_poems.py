@@ -91,10 +91,10 @@ class PoemScore:
         self.third = sentences[2]
         self.fourth = sentences[3]
 
-        self.score1 = get_score(self.first)
-        self.score2 = get_score(self.second)
-        self.score3 = get_score(self.third)
-        self.score4 = get_score(self.fourth)
+        self.score1, self.keyword1 = get_score(self.first)
+        self.score2, self.keyword2 = get_score(self.second)
+        self.score3, self.keyword3 = get_score(self.third)
+        self.score4, self.keyword4 = get_score(self.fourth)
 
 
 def get_poem_scores():
@@ -143,18 +143,49 @@ def get_score(sentence):
         # else:
             # print('{w} does not have a score'.format(w=word))
 
-    return score / count
+    return score / count, highest_ranked_word
 
 
 def main():
-    planner = Planner()
-    generator = GenerateModel(False)
+    #planner = Planner()
+    #generator = GenerateModel(False)
 
     poem_scores = get_poem_scores()
     sorted_poem_scores1 = sorted(poem_scores, key=lambda curr_poem: curr_poem.score1)
     sorted_poem_scores2 = sorted(poem_scores, key=lambda curr_poem: curr_poem.score2)
     sorted_poem_scores3 = sorted(poem_scores, key=lambda curr_poem: curr_poem.score3)
 
+    keyword_sorted_poem_scores_table1={}
+    for ps in sorted_poem_scores1:
+        keyword=ps.keyword1
+        if keyword in keyword_sorted_poem_scores_table1:
+            keyword_sorted_poem_scores_table1[keyword].append(ps)
+        else:
+            keyword_sorted_poem_scores_table1[keyword]=[]
+            keyword_sorted_poem_scores_table1[keyword].append(ps)
+
+    keyword_sorted_poem_scores_table2={}
+    for ps in sorted_poem_scores2:
+        keyword=ps.keyword2
+        if keyword in keyword_sorted_poem_scores_table2:
+            keyword_sorted_poem_scores_table2[keyword].append(ps)
+        else:
+            keyword_sorted_poem_scores_table2[keyword]=[]
+            keyword_sorted_poem_scores_table2[keyword].append(ps)
+
+    keyword_sorted_poem_scores_table3={}
+    for ps in sorted_poem_scores3:
+        keyword=ps.keyword3
+        if keyword in keyword_sorted_poem_scores_table3:
+            keyword_sorted_poem_scores_table3[keyword].append(ps)
+        else:
+            keyword_sorted_poem_scores_table3[keyword]=[]
+            keyword_sorted_poem_scores_table3[keyword].append(ps)
+    poem=['床前明月光','疑是地上霜','举头望明月','低头思故乡']
+    score = eval_poems(poem, keyword_sorted_poem_scores_table1['明月'],\
+         keyword_sorted_poem_scores_table2['地上'], keyword_sorted_poem_scores_table3['故乡'])
+    print (score)
+'''
     avg_score = 0
     num = 500
 
@@ -164,12 +195,19 @@ def main():
         keyword = listWords[i]
         keywords = planner.plan(keyword)
         poem = generator.generate(keywords)
-        score = eval_poems(poem, sorted_poem_scores1, sorted_poem_scores2, sorted_poem_scores3)
+        #score = eval_poems(poem, sorted_poem_scores1, sorted_poem_scores2, sorted_poem_scores3)
+        score = eval_poems(poem, keyword_sorted_poem_scores_table1[keywords[0]],\
+         keyword_sorted_poem_scores_table2[keywords[1]], keyword_sorted_poem_scores_table3[keywords[2]])
         avg_score += score
         for sentence in poem:
             print(sentence)
+
+
         print("The score of the current poem is:" + score)
     print("The average score is:" + avg_score / num)
+    '''
+
+
 
 if __name__ == '__main__':
     main()

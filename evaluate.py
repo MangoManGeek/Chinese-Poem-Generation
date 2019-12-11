@@ -27,14 +27,14 @@ def eval_poems(evaluator, poems):
     return scores, mean_score, std_score
 
 
-def eval_train_data():
+def eval_train_data(poems):
     evaluator = RhymeEvaluator()
 
     #quatrains = get_quatrains()
     #poems = map(lambda quatrain: quatrain['sentences'], quatrains) # Strip out metadata information
 
     # TODO: generate quatrains here
-    poems=get_poems()
+    #poems=get_poems()
 
     print ("Testing {} quatrains from the corpus.".format(len(poems)))
     scores, mean_score, std_score = eval_poems(evaluator, poems)
