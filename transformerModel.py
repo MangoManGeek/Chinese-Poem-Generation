@@ -30,26 +30,8 @@ class GenerateTransformerModel(tf.keras.Model):
         self.char2vec = Char2Vec()
         self.learning_rate = 0.001
 
-        # if not os.path.exists(save_dir):
-        #     os.mkdir(save_dir)
-        # self.saver = tf.train.Saver(tf.global_variables())
-        # self.trained = False
-
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
-
-        # self.key_encoder_GRU = tf.keras.layers.Bidirectional(
-        #     tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
-        # self.context_encoder_GRU = tf.keras.layers.Bidirectional(
-        #     tf.keras.layers.GRU(units=int(_NUM_UNITS / 2), return_sequences=True, return_state=True))
-
-        # self.attention = tfa.seq2seq.BahdanauAttention(units=_NUM_UNITS)
-        # self.decoder_GRU = tf.keras.layers.GRUCell(units=_NUM_UNITS)
-        # self.attention_wrapper = tfa.seq2seq.attention_wrapper(cell=self.decoder_GRU, attention_machanism=self.attention)
-        # self.decoder = tfa.seq2seq.dynamic_decode()
-
-        # self.dense_layer = tf.keras.layers.Dense(intput = )
-        # self.dense = tf.keras.layers.Dense(input_dim=_NUM_UNITS, units=len(self.char_dict))
 
         self.encoder = Encoder(isTrain)
         self.decoder = Decoder(len(self.char_dict), isTrain)
@@ -63,11 +45,6 @@ class GenerateTransformerModel(tf.keras.Model):
         if not tf.train.get_checkpoint_state(save_dir):
             print("Please train the model first! (./train.py -g)")
             sys.exit(1)
-        # try:
-        #     self.checkpoint.restore(self.manager.latest_checkpoint).assert_consumed()
-        #     print("Checkpoint is loaded successfully !")
-        # except AssertionError:
-        #     print("Fail to load checkpoint. Please train the model first! (./train.py -g)")
 
         self.checkpoint.restore(self.manager.latest_checkpoint)
         print("Checkpoint is loaded successfully !")
@@ -88,7 +65,6 @@ class GenerateTransformerModel(tf.keras.Model):
                 if char == start_of_sentence():
                     pass
                 else:
-                    # keyword_state = decoder_output
                     encoder_output = decoder_output
                 probs, logits, decoder_output = self.decoder(encoder_output, decoder_input, decoder_input_length)
                 prob_list = self._gen_prob_list(probs, context, pron_dict)
@@ -162,9 +138,7 @@ class GenerateTransformerModel(tf.keras.Model):
             encoder_output = self.encoder(keyword_data, context_data)
             probs, logits, decoder_output = self.decoder(encoder_output, decoder_input, decoder_input_length)
             loss = self.loss_func(targets, logits, probs)
-            # print(" loss =  %f" % loss)
 
-            #where to initialize??
             learning_rate = self.learning_rate_func(loss)
             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -174,47 +148,13 @@ class GenerateTransformerModel(tf.keras.Model):
         gradients = tape.gradient(loss, variables)
         optimizer.apply_gradients(zip(gradients, variables))
 
-        # return batch_loss #batch_loss??
-
-
 
     def loss_func(self, targets, logits, probs):
         labels = self.label_smoothing(tf.one_hot(targets, depth=len(self.char_dict)))
-        # loss = tf.losses.softmax_cross_entropy(onehot_labels = labels, logits = logits)
         loss = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=logits)
-        # loss = tf.keras.losses.sparse_categorical_crossentropy(labels, probs, from_logits=False)
         return tf.reduce_mean(loss)
 
     def label_smoothing(self,inputs, epsilon=0.1):
-        '''Applies label smoothing. See 5.4 and https://arxiv.org/abs/1512.00567.
-        inputs: 3d tensor. [N, T, V], where V is the number of vocabulary.
-        epsilon: Smoothing rate.
-
-        For example,
-
-        ```
-        import tensorflow as tf
-        inputs = tf.convert_to_tensor([[[0, 0, 1],
-           [0, 1, 0],
-           [1, 0, 0]],
-          [[1, 0, 0],
-           [1, 0, 0],
-           [0, 1, 0]]], tf.float32)
-
-        outputs = label_smoothing(inputs)
-
-        with tf.Session() as sess:
-            print(sess.run([outputs]))
-
-        >>
-        [array([[[ 0.03333334,  0.03333334,  0.93333334],
-            [ 0.03333334,  0.93333334,  0.03333334],
-            [ 0.93333334,  0.03333334,  0.03333334]],
-           [[ 0.93333334,  0.03333334,  0.03333334],
-            [ 0.93333334,  0.03333334,  0.03333334],
-            [ 0.03333334,  0.93333334,  0.03333334]]], dtype=float32)]
-        ```
-        '''
         V = inputs.get_shape().as_list()[-1]  # number of channels
         return ((1 - epsilon) * inputs) + (epsilon / V)
 
@@ -255,8 +195,6 @@ class Encoder(tf.keras.Model):
         self.isTrain = isTrain
         self.dropout_rate = 0.1
 
-        # Create positional encoder layers
-        # self.pos_encoder_keyword = transformer.Position_Encoding_Layer(self.window_size, _NUM_UNITS)
         self.pos_encoder_context = transformer.Position_Encoding_Layer(self.window_size, _NUM_UNITS)
 
         #transformer encoder
@@ -266,24 +204,10 @@ class Encoder(tf.keras.Model):
 
     def call(self, keyword_data, context_data):
         ####1. concate keyword and context first
-        # keyword_pos = self.pos_encoder_keyword(keyword_data) #[64, 2, 512]
-        # if self.isTrain:
-        #     context_pos = self.pos_encoder_context(context_data)  # [64, 25/1, 512]
-        # else:
-        #     context_pos = context_data
 
         context_pos = context_data
-        # if not self.isTrain:
-        #     context_pos = self.pos_encoder_context(context_data) #[64, 25/1, 512]
-
-        # context_pos = self.pos_encoder_context(context_data)  # [64, 25/1, 512]
-
-
         concate_pos_data = tf.concat([keyword_data, context_pos], axis=1)
-        # concate_pos_data_drop = self.dropout(concate_pos_data)
         encoder_output = self.encoder(concate_pos_data)
-        # if self.isTrain:
-        #     encoder_output = self.dense_layer(encoder_output)
 
         return encoder_output
 
@@ -300,19 +224,13 @@ class Decoder(tf.keras.Model):
         self.isTrain = isTrain
         self.dropout_rate = 0.1
 
-        # self.pos_decoder = transformer.Position_Encoding_Layer(self.window_size, _NUM_UNITS)
-
         self.decoder = transformer.Transformer_Block(_NUM_UNITS, is_decoder=True, multi_headed=True)
 
         self.dense_layer3 = tf.keras.layers.Dense(input_dim=_NUM_UNITS, units=char_dict_len)
 
         self.dropout = tf.keras.layers.Dropout(self.dropout_rate)
 
-        # encoder_output shape = (batch_size,max_length,hidden_size)
-
     def call(self, encoder_output, decoder_input, decoder_input_length):
-        # decoder_pos = self.pos_decoder(decoder_input)
-        # decoder_pos = self.dropout(decoder_pos)
         decoder_pos = decoder_input
         if self.isTrain:
             lcm = np.lcm(self.window_size, encoder_output.shape[1])
@@ -322,13 +240,6 @@ class Decoder(tf.keras.Model):
             decoder_pos_reshape = np.repeat(decoder_pos, encoder_output.shape[1], axis=1)
             encoder_reshape = encoder_output
 
-        # decoder_pos_reshape = np.repeat(decoder_pos, encoder_output.shape[1], axis=1)
-        # encoder_reshape = encoder_output
-
-        # decoder_pos_reshape = self.dropout(decoder_pos_reshape)
-
-        # decoder_pos_reshape = tf.broadcast_to(decoder_pos, shape=[64, encoder_output.shape[1], 512])
-
         decoder_output = self.decoder(decoder_pos_reshape, context=encoder_reshape)
 
         reshaped_outputs = self._reshape_decoder_outputs(decoder_output, decoder_input_length)
@@ -337,19 +248,8 @@ class Decoder(tf.keras.Model):
 
         prob = tf.nn.softmax(logits, -1)
 
-        # output shape == (batch_size * 1,hidden_size)
-        # output = tf.reshape(output, (-1, output.shape[2]))
 
-        # output shape == (batch_size,vocab)
-        # x = self.fc(output)
-
-        return prob, logits, decoder_output #or reshaped_output
-
-        # final_output, final_state, _ = self.decoder(attention_wrapper)
-        # reshaped_outputs = self._reshape_decoder_outputs(final_output, decoder_input_length)
-        # logits = self.dense(reshaped_outputs)
-        # prob = tf.nn.softmax(logits)
-        # return prob, final_state
+        return prob, logits, decoder_output 
 
     def _reshape_decoder_outputs(self, decoder_outputs, decoder_input_length):
         """ Reshape decoder_outputs into shape [?, _NUM_UNITS]. """
