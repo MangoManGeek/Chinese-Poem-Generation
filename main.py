@@ -1,6 +1,11 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+#########################################################################################################################################
+####### This source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation.      #######
+#########################################################################################################################################
+
+
 from generateModel import GenerateModel
 from transformerModel import GenerateTransformerModel
 from plan import Planner
