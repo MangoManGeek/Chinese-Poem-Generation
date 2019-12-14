@@ -1,5 +1,8 @@
 #! /usr/bin/env python3
 # -*- coding:utf-8 -*-
+############################################################################################################################################################
+####### This part of data processing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. #######
+############################################################################################################################################################
 
 from char_dict import end_of_sentence, start_of_sentence
 from paths import gen_data_path, plan_data_path, check_uptodate
