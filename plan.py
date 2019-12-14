@@ -1,6 +1,11 @@
 #! /usr/bin/env python3
 #-*- coding:utf-8 -*-
 
+############################################################################################################################################################
+####### This part of data processing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. #######
+############################################################################################################################################################
+
+
 from data_utils import gen_train_data
 from gensim import models
 from paths import save_dir, plan_data_path, check_uptodate
