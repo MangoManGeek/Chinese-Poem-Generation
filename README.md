@@ -1,16 +1,16 @@
 # Planning-based Poetry Generation
 
-A classical Chinese quatrain generator based on the RNN encoder-decoder framework.
+A classical Chinese quatrain generator based on the Transformer framework.
 
-Here I tried to implement the planning-based architecture purposed in 
+Here we tried to implement the planning-based architecture purposed in 
 [Wang et al. 2016](https://arxiv.org/abs/1610.09889),
 whereas technical details might be different from the original paper.
-My purpose of making this was not to refine the neural network model and give better results by myself.
-Rather, I wish to <b>provide a simple framework as said in the paper along with
-convenient data processing toolkits</b> for all those who want to experiment their
-ideas on this interesting task.
+#My purpose of making this was not to refine the neural network model and give better results by myself.
+#Rather, I wish to <b>provide a simple framework as said in the paper along with
+#convenient data processing toolkits</b> for all those who want to experiment their
+#ideas on this interesting task.
 
-By Jun 2018, this project has been refactored into Python3 using TensorFlow 1.8.
+#By Jun 2018, this project has been refactored into Python3 using TensorFlow 1.8.
 
 ## Code Organization
 
@@ -30,7 +30,7 @@ is either missing or outdated.
 
 * [Numpy 1.14.4](http://www.numpy.org/)
 
-* [TensorFlow 1.8](https://www.tensorflow.org/)
+* [TensorFlow 2.0](https://www.tensorflow.org/)
 
 * [Jieba 0.39](https://github.com/fxsjy/jieba)
 
