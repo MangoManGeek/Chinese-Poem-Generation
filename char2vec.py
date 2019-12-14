@@ -1,6 +1,10 @@
 #! /usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+############################################################################################################################################################
+####### This part of data processing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. #######
+############################################################################################################################################################
+
 from char_dict import CharDict
 from gensim import models
 from numpy.random import uniform
