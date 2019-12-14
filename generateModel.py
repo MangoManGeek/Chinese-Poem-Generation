@@ -42,11 +42,7 @@ class GenerateModel(tf.keras.Model):
         if not tf.train.get_checkpoint_state(save_dir):
             print("Please train the model first! (./train.py -g)")
             sys.exit(1)
-        # try:
-        #     self.checkpoint.restore(self.manager.latest_checkpoint).assert_consumed()
-        #     print("Checkpoint is loaded successfully !")
-        # except AssertionError:
-        #     print("Fail to load checkpoint. Please train the model first! (./train.py -g)")
+        
         self.checkpoint.restore(self.manager.latest_checkpoint)
         print("Checkpoint is loaded successfully !")
         assert NUM_OF_SENTENCES == len(keywords)
@@ -106,45 +102,6 @@ class GenerateModel(tf.keras.Model):
                 prob_list[i] *= 0.4
         return prob_list
 
-    # def _encoder(self, keyword_data, context_data):
-    #     # keyword_length pending
-    #     _, keyword_f_states, keyword_b_states = self.key_encoder_GRU(keyword_data)
-    #     keyword_state = tf.concat([keyword_f_states, keyword_b_states], axis=1)
-    #     context_output, _, _ = self.key_encoder_GRU(context_data)
-    #     return keyword_state, context_output
-
-    # def _decoder(self, keyword_state, context_output, decoder_input, decoder_input_length):
-    #     attention = self.attention(context_output)
-    #     a = 0
-    #     attention_wrapper = tfa.seq2seq.attention_wrapper(cell=self.decoder_GRU(keyword_state), attention_machanism=attention, output_attention=False)
-    #     final_output, final_state, _ = self.decoder(attention_wrapper)
-    #     reshaped_outputs = self._reshape_decoder_outputs(final_output, decoder_input_length)
-    #     logits = self.dense(reshaped_outputs)
-    #     prob = tf.nn.softmax(logits)
-    #     return prob, final_state
-    #
-    # def _reshape_decoder_outputs(self, decoder_outputs, decoder_input_length):
-    #     """ Reshape decoder_outputs into shape [?, _NUM_UNITS]. """
-    #     def concat_output_slices(idx, val):
-    #         output_slice = tf.slice(
-    #                 input=decoder_outputs,
-    #                 begin=[idx, 0, 0],
-    #                 size=[1, decoder_input_length[idx],  _NUM_UNITS])
-    #         return tf.add(idx, 1),\
-    #                 tf.concat([val, tf.squeeze(output_slice, axis=0)],
-    #                         axis=0)
-    #     tf_i = tf.constant(0)
-    #     tf_v = tf.zeros(shape=[0, _NUM_UNITS], dtype=tf.float32)
-    #     _, reshaped_outputs = tf.while_loop(
-    #             cond=lambda i, v: i < _BATCH_SIZE,
-    #             body=concat_output_slices,
-    #             loop_vars=[tf_i, tf_v],
-    #             shape_invariants=[tf.TensorShape([]),
-    #                 tf.TensorShape([None, _NUM_UNITS])])
-    #     tf.TensorShape([None, _NUM_UNITS]).\
-    #             assert_same_rank(reshaped_outputs.shape)
-    #     return reshaped_outputs
-
     def train(self, n_epochs):
         print("Training RNN-based generator ...")
         try:
@@ -188,8 +145,6 @@ class GenerateModel(tf.keras.Model):
         variables = self.encoder.trainable_variables + self.decoder.trainable_variables
         gradients = tape.gradient(loss, variables)
         self.optimizer.apply_gradients(zip(gradients, variables))
-
-        # return batch_loss #batch_loss??
 
     def loss_func(self, targets, logits):
         labels = tf.one_hot(targets, depth=len(self.char_dict))
@@ -256,20 +211,14 @@ class BahdanauAttention(tf.keras.Model):
         self.V = tf.keras.layers.Dense(1)
 
     def call(self, hidden_state, output):
-        # hidden shape == (batch_size,hidden size)
-        # hidden_with_time_axis shape == (batch_size,1,hidden size)
+       
         hidden_with_time_axis = tf.expand_dims(hidden_state, 1)
 
         test = self.W1(output)
         test2 = self.W2(hidden_with_time_axis)
 
-        # score shape == (batch_size,max_length,1)
         score = self.V(tf.nn.tanh(self.W1(output) + self.W2(hidden_with_time_axis)))
-
-        # attention_weights shape == (batch_size,max_length,1)
         attention_weights = tf.nn.softmax(score, axis=1)
-
-        # context_vector shape after sum == (batch_size,hidden_size)
         context_vector = attention_weights * output
         context_vector = tf.reduce_sum(context_vector, axis=1)
 
@@ -287,8 +236,6 @@ class Decoder(tf.keras.Model):
 
         self.attention = BahdanauAttention()
 
-        # encoder_output shape = (batch_size,max_length,hidden_size)
-
     def call(self, keyword_state, context_output, decoder_input, decoder_input_length, final_output, final_state,
              context_state):
         context_vector = self.attention(final_state, final_output)
@@ -299,7 +246,7 @@ class Decoder(tf.keras.Model):
 
         output, state = self.decoder_gru(x_test, initial_state=final_state)
         reshaped_outputs = self._reshape_decoder_outputs(output, decoder_input_length)
-        logits = self.fc(reshaped_outputs)  # add bias??
+        logits = self.fc(reshaped_outputs)  
         prob = tf.nn.softmax(logits)
 
         return prob, state, logits
