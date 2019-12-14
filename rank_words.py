@@ -1,6 +1,11 @@
 #! /usr/bin/env python3
 #-*- coding:utf-8 -*-
 
+############################################################################################################################################################
+####### This part of data processing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. #######
+############################################################################################################################################################
+
+
 from paths import raw_dir, wordrank_path, check_uptodate
 from poems import Poems
 from segment import Segmenter
