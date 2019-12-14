@@ -1,4 +1,4 @@
-# Planning-based Chinese Poem Generation
+# Transformer-based Chinese Poem Generation with Planning Techniques
 
 A classical Chinese Poem generator based on the Transformer framework.
 
@@ -45,7 +45,7 @@ run:
 
 ### Training the generator
 
-    Python3train.py -g
+    Python3 train.py -g
     
 If training data or planner is previously trained, running the above command will NOT re-train them. You will need to first clean the pre-recorded data:
 
@@ -53,7 +53,7 @@ If training data or planner is previously trained, running the above command wil
 
 You can also choose to train the both models altogether by running:
 
-    Python3train.py -a
+    Python3 train.py -a
 
 
 ## To Generate Poems
