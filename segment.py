@@ -7,6 +7,11 @@ from utils import split_sentences, generate_sxhy_word_set
 import jieba
 import os
 
+############################################################################################################################################################
+####### This part of data processing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. #######
+############################################################################################################################################################
+
+
 
 class Segmenter(Singleton):
 
