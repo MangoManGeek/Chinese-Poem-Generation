@@ -6,6 +6,9 @@ from singleton import Singleton
 from utils import is_cn_char
 import os
 
+############################################################################################################################################################
+####### This part of data processing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. #######
+############################################################################################################################################################
 
 MAX_DICT_SIZE = 6000
 
