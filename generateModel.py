@@ -1,3 +1,8 @@
+#########################################################################################################################################
+####### This source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation.      #######
+#########################################################################################################################################
+
+
 from char2vec import Char2Vec
 from char_dict import CharDict, end_of_sentence, start_of_sentence
 from data_utils import batch_train_data
