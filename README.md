@@ -14,7 +14,7 @@ By Jun 2018, this project has been refactored into Python3 using TensorFlow 1.8.
 
 ## Code Organization
 
-![Structure of Code](img/structure.jpg)
+![Structure of Code](img/transformer_structure.jpg)
 
 The diagram above illustrates major dependencies in
 this codebase in terms of either data or functionalities.
