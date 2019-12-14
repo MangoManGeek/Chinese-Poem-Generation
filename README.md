@@ -45,7 +45,7 @@ run:
 
 ### Training the generator
 
-    ./train.py -g
+    Python3train.py -g
     
 If training data or planner is previously trained, running the above command will NOT re-train them. You will need to first clean the pre-recorded data:
 
@@ -53,7 +53,7 @@ If training data or planner is previously trained, running the above command wil
 
 You can also choose to train the both models altogether by running:
 
-    ./train.py -a
+    Python3train.py -a
 
 
 ## To Generate Poems
@@ -71,4 +71,7 @@ You will be prompted to enter a title or hint for your poem as an input to the m
 * Current transformer model does not perform very well. We need to address the poor performance of our Transformer model.
 
 * Try to implement BERT instead of Transformer
+
+## Acknowledgement
+The data preprocessing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. 
 
