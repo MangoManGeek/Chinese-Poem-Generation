@@ -3,6 +3,10 @@
 
 import os
 
+############################################################################################################################################################
+####### This part of data processing source code is based on [DevinZ1993](https://github.com/DevinZ1993/Chinese-Poetry-Generation)'s implementation. #######
+############################################################################################################################################################
+
 #starting directory
 root_dir = os.path.dirname(__file__)
 #root_dir = os.path.join(os.path.dirname(__file__),"../../../data/")
