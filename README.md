@@ -5,12 +5,12 @@ A classical Chinese quatrain generator based on the Transformer framework.
 Here we tried to implement the planning-based architecture purposed in 
 [Wang et al. 2016](https://arxiv.org/abs/1610.09889),
 whereas technical details might be different from the original paper.
-#My purpose of making this was not to refine the neural network model and give better results by myself.
-#Rather, I wish to <b>provide a simple framework as said in the paper along with
-#convenient data processing toolkits</b> for all those who want to experiment their
-#ideas on this interesting task.
+<!--My purpose of making this was not to refine the neural network model and give better results by myself.
+Rather, I wish to <b>provide a simple framework as said in the paper along with
+convenient data processing toolkits</b> for all those who want to experiment their
+ideas on this interesting task.-->
 
-#By Jun 2018, this project has been refactored into Python3 using TensorFlow 1.8.
+<!--By Jun 2018, this project has been refactored into Python3 using TensorFlow 1.8.-->
 
 ## Code Organization
 
@@ -68,11 +68,11 @@ To erase all trained models, run:
     ./train.py --clean
 
 
-As it turned out, the attention-based generator model after refactor
+<!--As it turned out, the attention-based generator model after refactor
 was really hard to train well.
 From my side, the average loss will typically stuck at ~5.6
 and won't go down any more.
-There should be considerable space to improve it.
+There should be considerable space to improve it.-->
 
 ## Run Tests
 
